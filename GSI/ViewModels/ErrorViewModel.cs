@@ -1,4 +1,4 @@
-namespace GSI.Models
+namespace GSI.ViewModels
 {
     public class ErrorViewModel
     {

@@ -1,8 +1,82 @@
-﻿@{
+﻿@model IEnumerable<GSI.ViewModels.ProductoViewModel>
+@{
     ViewData["Title"] = "Home Page";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <h1 class="display-4">Productos</h1>
 </div>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Precio</th>
+            <th>Categoría</th>
+            <th>Cantidad en Stock</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var producto in Model)
+        {
+            <tr id="producto-row-@producto.ProductoID">
+                <td>@producto.Nombre</td>
+                <td>@producto.Descripcion</td>
+                <td>@producto.Precio</td>
+                <td>@producto.Categoria</td>
+                <td class="stock-cell">@producto.CantidadStock</td>
+                <td>
+                    <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#stockModal" data-id="@producto.ProductoID" data-nombre="@producto.Nombre" data-stock="@producto.CantidadStock">
+                        Ajustar Stock
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@await Html.PartialAsync("_AdjustStockPartial", new GSI.ViewModels.AjustarStockViewModel())
+
+@section Scripts{
+    <script>
+        $('#stockModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget) // Botón que disparó el modal
+            var id = button.data('id')
+            var nombre = button.data('nombre')
+            var stock = button.data('stock')
+
+            var modal = $(this)
+            modal.find('.modal-body #productoId').val(id)
+            modal.find('.modal-body #nombreProducto').val(nombre)
+            modal.find('.modal-body #stockActual').val(stock)
+            modal.find('.modal-body #nuevoStock').val('');
+        })
+        function ajustarStock() {
+            var id = $('#productoId').val();
+            var nuevoStock = $('#nuevoStock').val();
+
+            $.ajax({
+                url: '@Url.Action("AjustarStock", "Home")',
+                type: 'POST',
+                data: { id: id, nuevoStock: nuevoStock },
+                success: function (response) {
+                    if (response.success) {
+                        alert(response.message);
+                        $('#stockModal').modal('hide');
+
+                        // Actualizar el valor del stock en la tabla
+                        $('#producto-row-' + id + ' .stock-cell').text(nuevoStock);
+                        $('a[data-id="' + id + '"]').data('stock', nuevoStock);
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function () {
+                    alert("Error en la solicitud al servidor");
+                }
+            });
+        }
+    </script>
+}
+
