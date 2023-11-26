@@ -9,6 +9,7 @@
         public int CantidadStock { get; set; } // Asumiendo que quieres mostrar esto
         public string Categoria { get; set; }
         // Agrega cualquier otro detalle que quieras mostrar, como Estado de la transacción
+        public int? CategoriaID { get; set; }
     }
 
 }

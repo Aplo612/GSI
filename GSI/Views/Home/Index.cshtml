@@ -1,11 +1,18 @@
-﻿@model IEnumerable<GSI.ViewModels.ProductoViewModel>
+﻿@model GSI.ViewModels.IndexViewModel
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Lista de Productos";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Productos</h1>
+    <h1 class="display-4">Stock de Productos</h1>
 </div>
+@using (Html.BeginForm())
+{
+    <p>
+        Filtrar por categoría:
+        @Html.DropDownListFor(m => m.CategoriaSeleccionada, Model.Categorias, "Todas", new { onchange = "this.form.submit();" })
+    </p>
+}
 <table class="table">
     <thead>
         <tr>
@@ -18,14 +25,25 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var producto in Model)
+        @foreach (var producto in Model.Productos)
         {
             <tr id="producto-row-@producto.ProductoID">
                 <td>@producto.Nombre</td>
-                <td>@producto.Descripcion</td>
+                <td>
+                    @if (producto.Descripcion.Length > 60)
+                    {
+                        @(producto.Descripcion.Length > 60 ? producto.Descripcion.Substring(0, 60) + "..." : producto.Descripcion)
+                    }
+                    else
+                    {
+                        @producto.Descripcion
+                    }
+                </td>
                 <td>@producto.Precio</td>
                 <td>@producto.Categoria</td>
-                <td class="stock-cell">@producto.CantidadStock</td>
+                <td class="text-center stock-cell @GetStockClass(producto.CantidadStock)">
+                    @producto.CantidadStock
+                </td>
                 <td>
                     <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#stockModal" data-id="@producto.ProductoID" data-nombre="@producto.Nombre" data-stock="@producto.CantidadStock">
                         Ajustar Stock
@@ -36,25 +54,104 @@
     </tbody>
 </table>
 
+<div class="pagination-container">
+    @if (Model.Productos.HasPreviousPage)
+    {
+        <a href="@Url.Action("Index", new { pagina = Model.Productos.PageIndex - 1 })" class="btn btn-default">Anterior</a>
+    }
+    else
+    {
+        <span class="btn btn-default disabled">Anterior</span>
+    }
+
+    @for (int i = 1; i <= Model.Productos.TotalPages; i++)
+    {
+        if (i == Model.Productos.PageIndex)
+        {
+            <span class="btn btn-primary">@i</span>
+        }
+        else
+        {
+            <a href="@Url.Action("Index", new { pagina = i })" class="btn btn-default">@i</a>
+        }
+    }
+
+    @if (Model.Productos.HasNextPage)
+    {
+        <a href="@Url.Action("Index", new { pagina = Model.Productos.PageIndex + 1 })" class="btn btn-default">Siguiente</a>
+    }
+    else
+    {
+        <span class="btn btn-default disabled">Siguiente</span>
+    }
+</div>
+
 @await Html.PartialAsync("_AdjustStockPartial", new GSI.ViewModels.AjustarStockViewModel())
+
+<style>
+    .pagination-container {
+        margin-top: 20px;
+    }
+
+    .pagination-container .btn {
+        margin-right: 5px;
+    }
+
+    .pagination-container .disabled {
+        color: #ccc;
+    }
+
+    .stock-value {
+        display: flex;
+        align-items: center; /* Centra verticalmente */
+        justify-content: center; /* Centra horizontalmente */
+        height: 100%; /* Asegúrate de que la celda tiene una altura establecida si es necesario */
+    }
+
+    .stock-green {
+        color: #28a745 !important; /* Utiliza un tono de verde más oscuro para mejor visibilidad */
+    }
+
+    .stock-yellow {
+        color: #ffc107 !important; /* Utiliza un tono de amarillo más oscuro para mejor visibilidad */
+    }
+
+    .stock-red {
+        color: #dc3545 !important; /* Utiliza un tono de rojo más oscuro para mejor visibilidad */
+    }
+</style>
+
+@functions {
+    private string GetStockClass(int stockAmount)
+    {
+        if (stockAmount > 30) return "stock-green";
+        else if (stockAmount > 5 && stockAmount <= 30) return "stock-yellow";
+        else return "stock-red";
+    }
+}
 
 @section Scripts{
     <script>
         $('#stockModal').on('show.bs.modal', function (event) {
-            var button = $(event.relatedTarget) // Botón que disparó el modal
-            var id = button.data('id')
-            var nombre = button.data('nombre')
-            var stock = button.data('stock')
+            var button = $(event.relatedTarget); // Botón que disparó el modal
+            var id = button.data('id');
+            var nombre = button.data('nombre');
+            var stock = button.data('stock');
 
-            var modal = $(this)
-            modal.find('.modal-body #productoId').val(id)
-            modal.find('.modal-body #nombreProducto').val(nombre)
-            modal.find('.modal-body #stockActual').val(stock)
-            modal.find('.modal-body #nuevoStock').val('');
+            var modal = $(this);
+            modal.find('.modal-body #productoId').val(id);
+            modal.find('.modal-body #nombreProducto').val(nombre);
+            modal.find('.modal-body #stockActual').val(stock);
+            modal.find('.modal-body #nuevoStock').val('').attr('min', '0').attr('step', '1');
         })
         function ajustarStock() {
             var id = $('#productoId').val();
             var nuevoStock = $('#nuevoStock').val();
+
+            if (!$.isNumeric(nuevoStock) || nuevoStock < 0) {
+                alert("Por favor, introduzca un valor de stock válido (número positivo).");
+                return; // Detener la ejecución adicional de la función
+            }
 
             $.ajax({
                 url: '@Url.Action("AjustarStock", "Home")',
@@ -68,6 +165,7 @@
                         // Actualizar el valor del stock en la tabla
                         $('#producto-row-' + id + ' .stock-cell').text(nuevoStock);
                         $('a[data-id="' + id + '"]').data('stock', nuevoStock);
+                        updateStockDisplay(id, nuevoStock);
                     } else {
                         alert(response.message);
                     }
@@ -76,6 +174,23 @@
                     alert("Error en la solicitud al servidor");
                 }
             });
+        }
+        function updateStockDisplay(id, nuevoStock) {
+            var stockCell = $('#producto-row-' + id + ' .stock-cell');
+            stockCell.text(nuevoStock);
+
+            // Eliminar estilos en línea y clases previas de colores
+            stockCell.removeAttr('style');
+            stockCell.removeClass('stock-green stock-yellow stock-red');
+
+            // Asignar la nueva clase basada en el nuevo valor del stock
+            if (nuevoStock > 30) {
+                stockCell.addClass('stock-green');
+            } else if (nuevoStock > 5 && nuevoStock <= 30) {
+                stockCell.addClass('stock-yellow');
+            } else {
+                stockCell.addClass('stock-red');
+            }
         }
     </script>
 }

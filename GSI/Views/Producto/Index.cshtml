@@ -1,0 +1,180 @@
+﻿@model GSI.ViewModels.IndexViewModel
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success" role="alert" id="success-alert">
+        @TempData["SuccessMessage"]
+    </div>
+
+    <script type="text/javascript">
+        setTimeout(function () {
+            document.getElementById('success-alert').style.display = 'none';
+        }, 3000); // 3000 milisegundos = 3 segundos
+    </script>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger" role="alert" id="error-alert">
+        @TempData["ErrorMessage"]
+    </div>
+    <script type="text/javascript">
+        setTimeout(function () {
+            document.getElementById('error-alert').style.display = 'none';
+        }, 3000); // 3000 milisegundos = 3 segundos
+    </script>
+}
+
+<div class="text-center">
+    <h1 class="display-4">Productos</h1>
+</div>
+
+<p>
+    <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoProductoModal">Crear Nuevo Producto</a>
+</p>
+
+@using (Html.BeginForm("Index", "Producto", FormMethod.Get))
+{
+    <p>
+        Filtrar por categoría:
+        @Html.DropDownListFor(m => m.CategoriaSeleccionada, Model.Categorias, "Todas", new { onchange = "this.form.submit();" })
+    </p>
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Precio</th>
+            <th>Categoría</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var producto in Model.Productos)
+        {
+            <tr>
+                <td>@producto.Nombre</td>
+                <td>@producto.Descripcion</td>
+                <td>@producto.Precio</td>
+                <td>@producto.Categoria</td>
+                <td>
+                    <a href="#" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#editarProductoModal"
+                       data-id="@producto.ProductoID" data-nombre="@producto.Nombre"
+                       data-descripcion="@producto.Descripcion" data-precio="@producto.Precio"
+                       data-categoriaid="@producto.CategoriaID">
+                        Editar
+                    </a>
+                    <a href="#" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmarEliminarProductoModal" data-id="@producto.ProductoID">
+                        Eliminar
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="pagination-container">
+    @if (Model.Productos.HasPreviousPage)
+    {
+        <a href="@Url.Action("Index", new { pagina = Model.Productos.PageIndex - 1 })" class="btn btn-default">Anterior</a>
+    }
+    else
+    {
+        <span class="btn btn-default disabled">Anterior</span>
+    }
+
+    @for (int i = 1; i <= Model.Productos.TotalPages; i++)
+    {
+        if (i == Model.Productos.PageIndex)
+        {
+            <span class="btn btn-primary">@i</span>
+        }
+        else
+        {
+            <a href="@Url.Action("Index", new { pagina = i })" class="btn btn-default">@i</a>
+        }
+    }
+
+    @if (Model.Productos.HasNextPage)
+    {
+        <a href="@Url.Action("Index", new { pagina = Model.Productos.PageIndex + 1 })" class="btn btn-default">Siguiente</a>
+    }
+    else
+    {
+        <span class="btn btn-default disabled">Siguiente</span>
+    }
+</div>
+
+@await Html.PartialAsync("_CrearProductoPartial", new GSI.Models.Producto())
+@await Html.PartialAsync("_EditarProductoPartial", new GSI.Models.Producto())
+@await Html.PartialAsync("_ConfirmarEliminarProductoPartial", new GSI.Models.Producto())
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            // Check if we need to open the modal
+            if ("@TempData["OpenModal"]" === "true") {
+                $('#nuevoProductoModal').modal('show');
+            }
+        });
+    </script>
+    <script type="text/javascript">
+        $('#editarProductoModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget); // Botón que disparó el modal
+            var id = button.data('id');
+            var nombre = button.data('nombre');
+            var descripcion = button.data('descripcion');
+            var precio = button.data('precio');
+            var categoriaid = button.data('categoriaid');
+
+            var modal = $(this);
+            modal.find('.modal-body #ProductoId').val(id);
+            modal.find('.modal-body #Nombre').val(nombre);
+            modal.find('.modal-body #Descripcion').val(descripcion);
+            modal.find('.modal-body #Precio').val(precio);
+            modal.find('.modal-body #CategoriaId').val(categoriaid);
+        });
+    </script>
+    <script type="text/javascript">
+        $('#confirmarEliminarProductoModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget); // Botón que disparó el modal
+            var id = button.data('id');
+            var modal = $(this);
+            modal.find('#confirmProductoId').val(id);
+        });
+
+        function confirmarEliminacion() {
+            var id = $('#confirmProductoId').val();
+            var confirmacionTexto = $('#confirmacionTexto').val();
+
+            if (confirmacionTexto.toLowerCase() === 'si') {
+                // Realizar la solicitud de eliminación
+                $.ajax({
+                    url: '@Url.Action("EliminarProducto", "Producto")',
+                    type: 'POST',
+                    data: {
+                        id: id,
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            alert(response.message);
+                            // Recargar la página o eliminar la fila de la tabla
+                            location.reload(); // O una lógica más compleja para eliminar la fila
+                        } else {
+                            alert(response.message);
+                        }
+                    },
+                    error: function () {
+                        alert("Error en la solicitud al servidor");
+                    }
+                });
+            } else {
+                alert("Debe escribir 'Si' para confirmar la eliminación.");
+            }
+        }
+    </script>
+}

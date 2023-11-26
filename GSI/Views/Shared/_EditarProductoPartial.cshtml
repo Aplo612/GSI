@@ -1,0 +1,50 @@
+﻿@using GSI.Models
+@inject InventarioproyectogsiContext _context
+@model GSI.Models.Producto
+
+@{
+    
+}
+
+<div class="modal fade" id="editarProductoModal" tabindex="-1" role="dialog" aria-labelledby="editarProductoModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editarProductoModalLabel">Editar Producto</h5>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form asp-action="EditarProducto">
+                    <input type="hidden" asp-for="ProductoId" />
+                    <div class="form-group">
+                        <label asp-for="Nombre" style=" margin-bottom: 5px;">Nombre</label>
+                        <input asp-for="Nombre" class="form-control" required />
+                        <span asp-validation-for="Nombre" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Descripcion" style=" margin-bottom: 5px;">Descripción</label>
+                        <input asp-for="Descripcion" class="form-control" required />
+                        <span asp-validation-for="Descripcion" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Precio" style=" margin-bottom: 5px;">Precio</label>
+                        <input asp-for="Precio" class="form-control" required />
+                        <span asp-validation-for="Precio" class="text-danger"></span>
+                    </div>
+                    <div class="form-group" style=" margin-bottom: 20px;">
+                        <label asp-for="CategoriaId" style=" margin-bottom: 5px;">Categoría</label>
+                        <select asp-for="CategoriaId" asp-items="ViewBag.Categorias" class="form-control" required></select>
+                        <span asp-validation-for="CategoriaId" class="text-danger"></span>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <input type="submit" class="btn btn-primary" value="Guardar Cambios" />
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
