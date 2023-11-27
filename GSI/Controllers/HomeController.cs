@@ -38,7 +38,6 @@ namespace GSI.Controllers
                 productosQuery = productosQuery.Where(p => p.Categoria.Nombre == categoriaSeleccionada);
             }
 
-            // Creamos una instancia de PaginatedList con la consulta a la base de datos
             var productosPaginados = await PaginatedList<ProductoViewModel>.CreateAsync(
                 productosQuery.Select(p => new ProductoViewModel
                 {
@@ -46,7 +45,7 @@ namespace GSI.Controllers
                     Nombre = p.Nombre,
                     Descripcion = p.Descripcion,
                     Precio = p.Precio,
-                    CantidadStock = p.Stocks.Sum(s => s.Cantidad), // Asegúrate de que esta lógica es correcta para tus necesidades
+                    CantidadStock = p.Stocks.Sum(s => s.Cantidad), 
                     Categoria = p.Categoria.Nombre,
                 }),
                 numeroDePagina,
@@ -72,42 +71,81 @@ namespace GSI.Controllers
         [HttpPost]
         public async Task<IActionResult> AjustarStock(int id, int nuevoStock)
         {
-            try
+            using (var transaction = _context.Database.BeginTransaction())
             {
-                var producto = await _context.Productos
-                    .FirstOrDefaultAsync(p => p.ProductoId == id);
-
-                if (producto == null)
+                try
                 {
-                    return Json(new { success = false, message = "Producto no encontrado." });
-                }
+                    var producto = await _context.Productos
+                        .FirstOrDefaultAsync(p => p.ProductoId == id);
 
-                var productoStock = await _context.Stocks
-                    .FirstOrDefaultAsync(p => p.ProductoId == id);
+                    if (producto == null)
+                    {
+                        return Json(new { success = false, message = "Producto no encontrado." });
+                    }
 
-                if (productoStock == null)
-                {
-                    productoStock = new Stock
+                    var productoStock = await _context.Stocks
+                        .FirstOrDefaultAsync(p => p.ProductoId == id);
+
+                    int cantidadOriginal = productoStock?.Cantidad ?? 0;
+                    int cantidadAjustada = nuevoStock - cantidadOriginal;
+
+                    if (productoStock == null)
+                    {
+                        productoStock = new Stock
+                        {
+                            ProductoId = id,
+                            Cantidad = nuevoStock // Asegúrate de que 'nuevoStock' esté definido y sea el valor correcto que deseas asignar
+                        };
+                        _context.Stocks.Add(productoStock);
+                    }
+                    else
+                    {
+                        productoStock.Cantidad = nuevoStock;
+                    }
+
+                    // Crear la transacción
+                    var transaccion = new Transaccione
                     {
                         ProductoId = id,
-                        Cantidad = nuevoStock // Asegúrate de que 'nuevoStock' esté definido y sea el valor correcto que deseas asignar
+                        Tipo = cantidadAjustada > 0 ? "Entrada" : "Salida",
+                        Cantidad = Math.Abs(cantidadAjustada),
+                        Fecha = DateTime.Now
                     };
-                    _context.Stocks.Add(productoStock);
+
+                    _context.Transacciones.Add(transaccion);
+                    await _context.SaveChangesAsync(); // Confirma los cambios en la base de datos
+                    await transaction.CommitAsync();
+
+                    return Json(new { success = true, message = "Stock actualizado correctamente." });
                 }
-                else
+                catch (Exception ex)
                 {
-                    productoStock.Cantidad = nuevoStock;
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Error al ajustar stock");
+
+                    return Json(new { success = false, message = "Error al actualizar el stock." });
                 }
-                await _context.SaveChangesAsync(); // Confirma los cambios en la base de datos
-
-                return Json(new { success = true, message = "Stock actualizado correctamente." });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error al ajustar stock");
+        }
 
-                return Json(new { success = false, message = "Error al actualizar el stock." });
-            }
+        public async Task<IActionResult> DashboardTransacciones()
+        {
+            // Obtener las transacciones del día
+            var transacciones = await _context.Transacciones
+                        .ToListAsync();
+
+            // Agrupar las transacciones por día
+            var transaccionesPorDia = transacciones
+                        .GroupBy(t => t.Fecha.HasValue ? t.Fecha.Value.Date : DateTime.MinValue)
+                        .Select(g => new { Fecha = g.Key, NumeroDeTransacciones = g.Count() })
+                        .OrderBy(g => g.Fecha)
+                        .ToList();
+
+            // Preparar los datos para el gráfico
+            ViewBag.Fechas = transaccionesPorDia.Select(t => t.Fecha.ToString("dd/MM/yyyy")).ToList();
+            ViewBag.NumeroDeTransacciones = transaccionesPorDia.Select(t => t.NumeroDeTransacciones).ToList();
+
+            return View(transacciones);
         }
 
 

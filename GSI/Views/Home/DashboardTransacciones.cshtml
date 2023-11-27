@@ -1,0 +1,60 @@
+﻿@model IEnumerable<GSI.Models.Transaccione>
+
+@{
+
+}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="text-center">
+    <h1 class="display-4">Dashboard de Transacciones</h1>
+</div>
+
+<canvas id="transaccionesChart" width="400" height="200"></canvas>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Producto ID</th>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Fecha</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var transaccion in Model)
+        {
+            <tr>
+                <td>@transaccion.ProductoId</td>
+                <td>@transaccion.Tipo</td>
+                <td>@transaccion.Cantidad</td>
+                <td>@(transaccion.Fecha.HasValue ? transaccion.Fecha.Value.ToString("g") : "N/A")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    <script>
+        var ctx = document.getElementById('transaccionesChart').getContext('2d');
+        var transaccionesChart = new Chart(ctx, {
+            type: 'line', // O 'bar' si prefieres un gráfico de barras
+            data: {
+                labels: @Html.Raw(Json.Serialize(ViewBag.Fechas)), // Las horas
+                datasets: [{
+                    label: 'Transacciones por Hora',
+                    data: @Html.Raw(Json.Serialize(ViewBag.NumeroDeTransacciones)), // Las cantidades
+                    backgroundColor: 'rgba(0, 123, 255, 0.5)',
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+}

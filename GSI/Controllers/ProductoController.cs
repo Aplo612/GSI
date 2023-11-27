@@ -112,5 +112,7 @@ namespace GSI.Controllers
 
             return Json(new { success = true, message = "Producto eliminado correctamente." });
         }
+
+        
     }
 }
