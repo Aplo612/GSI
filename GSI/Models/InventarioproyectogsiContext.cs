@@ -23,6 +23,8 @@ public partial class InventarioproyectogsiContext : DbContext
 
     public virtual DbSet<Transaccione> Transacciones { get; set; }
 
+    public virtual DbSet<Usuario> Usuarios { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseMySql("server=localhost;database=inventarioproyectogsi;uid=root;password=Eevee612!", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.34-mysql"));
@@ -97,6 +99,16 @@ public partial class InventarioproyectogsiContext : DbContext
             entity.HasOne(d => d.Producto).WithMany(p => p.Transacciones)
                 .HasForeignKey(d => d.ProductoId)
                 .HasConstraintName("transacciones_ibfk_1");
+        });
+
+        modelBuilder.Entity<Usuario>(entity =>
+        {
+            entity.HasKey(e => e.UsuarioId).HasName("PRIMARY");
+
+            entity.ToTable("usuarios");
+
+            entity.Property(e => e.HashContraseña).HasMaxLength(255);
+            entity.Property(e => e.Nombre).HasMaxLength(255);
         });
 
         OnModelCreatingPartial(modelBuilder);

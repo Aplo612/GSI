@@ -10,6 +10,14 @@ builder.Services.AddDbContext<InventarioproyectogsiContext>(options =>
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddAuthentication("CookieAuthentication")
+    .AddCookie("CookieAuthentication", options =>
+    {
+        options.Cookie.Name = "UserLoginCookie";
+        options.LoginPath = "/Home/Login"; // Asegúrate de que esta ruta exista y esté configurada correctamente.
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30); // Configura el tiempo de expiración de la cookie.
+    });
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -25,10 +33,11 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Home}/{action=Login}/{id?}");
 
 app.Run();

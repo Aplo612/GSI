@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using BCrypt.Net;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
 
 namespace GSI.Controllers
 {
@@ -146,6 +149,71 @@ namespace GSI.Controllers
             ViewBag.NumeroDeTransacciones = transaccionesPorDia.Select(t => t.NumeroDeTransacciones).ToList();
 
             return View(transacciones);
+        }
+
+
+        [HttpGet]
+        public IActionResult Register()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Register(RegisterViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = new Usuario
+                {
+                    Nombre = model.Username,
+                    HashContraseña = BCrypt.Net.BCrypt.HashPassword(model.Password)
+                };
+                _context.Usuarios.Add(user);
+                await _context.SaveChangesAsync();
+                // Aquí deberías iniciar sesión al usuario o redirigirlo a la página de inicio de sesión
+                return RedirectToAction("Login", "Home");
+            }
+            return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult Login()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Login(LoginViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await _context.Usuarios
+                    .SingleOrDefaultAsync(u => u.Nombre == model.Username);
+
+                if (user != null && BCrypt.Net.BCrypt.Verify(model.Password, user.HashContraseña))
+                {
+                    var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.Name, user.Nombre),
+                    };
+
+                    var claimsIdentity = new ClaimsIdentity(claims, "CookieAuthentication");
+                    await HttpContext.SignInAsync("CookieAuthentication", new ClaimsPrincipal(claimsIdentity));
+
+                    return RedirectToAction("Index", "Home");
+                }
+                ModelState.AddModelError(string.Empty, "Intento de inicio de sesión inválido.");
+            }
+            return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync("CookieAuthentication");
+            return RedirectToAction("Login", "Home");
         }
 
 
