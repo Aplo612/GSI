@@ -14,8 +14,8 @@ builder.Services.AddAuthentication("CookieAuthentication")
     .AddCookie("CookieAuthentication", options =>
     {
         options.Cookie.Name = "UserLoginCookie";
-        options.LoginPath = "/Home/Login"; // Asegúrate de que esta ruta exista y esté configurada correctamente.
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(30); // Configura el tiempo de expiración de la cookie.
+        options.LoginPath = "/Home/Login"; 
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30); 
     });
 
 var app = builder.Build();

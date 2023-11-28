@@ -4,12 +4,7 @@
     Layout = null;
 }
 
-@if (!ViewData.ModelState.IsValid)
-{
-    <div class="alert alert-danger">
-        @Html.ValidationSummary(true, "El inicio de sesión falló. Verifica tus credenciales e intenta nuevamente.")
-    </div>
-}
+
 
 <!DOCTYPE html>
 <html>
@@ -42,6 +37,12 @@
 </head>
 <body>
     <div class="login-container">
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger">
+                @Html.ValidationSummary(true, "El inicio de sesión falló. Verifica tus credenciales e intenta nuevamente.")
+            </div>
+        }
         <h2>Iniciar sesión</h2>
         @using (Html.BeginForm("Login", "Home", FormMethod.Post))
         {

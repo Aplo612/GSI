@@ -7,6 +7,7 @@ using System.Diagnostics;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GSI.Controllers
 {
@@ -22,6 +23,7 @@ namespace GSI.Controllers
             _logger = logger;
         }
 
+        [Authorize]
         public async Task<IActionResult> Index(int? pagina, string categoriaSeleccionada)
         {
 
@@ -71,6 +73,7 @@ namespace GSI.Controllers
             return null;
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> AjustarStock(int id, int nuevoStock)
         {
@@ -97,7 +100,7 @@ namespace GSI.Controllers
                         productoStock = new Stock
                         {
                             ProductoId = id,
-                            Cantidad = nuevoStock // Asegúrate de que 'nuevoStock' esté definido y sea el valor correcto que deseas asignar
+                            Cantidad = nuevoStock 
                         };
                         _context.Stocks.Add(productoStock);
                     }
@@ -116,7 +119,7 @@ namespace GSI.Controllers
                     };
 
                     _context.Transacciones.Add(transaccion);
-                    await _context.SaveChangesAsync(); // Confirma los cambios en la base de datos
+                    await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
                     return Json(new { success = true, message = "Stock actualizado correctamente." });
@@ -131,8 +134,15 @@ namespace GSI.Controllers
             }
         }
 
+        [Authorize]
         public async Task<IActionResult> DashboardTransacciones()
         {
+            // Obtener las últimas 10 transacciones
+            var ultimasTransacciones = await _context.Transacciones
+                        .OrderByDescending(t => t.Fecha)
+                        .Take(10)
+                        .ToListAsync();
+
             // Obtener las transacciones del día
             var transacciones = await _context.Transacciones
                         .ToListAsync();
@@ -148,7 +158,24 @@ namespace GSI.Controllers
             ViewBag.Fechas = transaccionesPorDia.Select(t => t.Fecha.ToString("dd/MM/yyyy")).ToList();
             ViewBag.NumeroDeTransacciones = transaccionesPorDia.Select(t => t.NumeroDeTransacciones).ToList();
 
-            return View(transacciones);
+            var todasLasTransacciones = await _context.Transacciones
+                .Include(t => t.Producto)
+                .ToListAsync();
+
+            var gananciasPorMes = todasLasTransacciones
+                        .GroupBy(t => t.Fecha.HasValue ? new DateTime(t.Fecha.Value.Year, t.Fecha.Value.Month, 1) : DateTime.MinValue)
+                        .Select(g => new {
+                            Fecha = g.Key,
+                            Ganancia = g.Sum(t => t.Producto.Precio * t.Cantidad)
+                        })
+                        .OrderBy(g => g.Fecha)
+                        .ToList();
+
+            // Pasar datos a la vista
+            ViewBag.GananciasPorMes = gananciasPorMes.Select(g => g.Ganancia).ToList();
+            ViewBag.Meses = gananciasPorMes.Select(g => g.Fecha.ToString("MM/yyyy")).ToList();
+
+            return View(ultimasTransacciones);
         }
 
 
@@ -171,7 +198,6 @@ namespace GSI.Controllers
                 };
                 _context.Usuarios.Add(user);
                 await _context.SaveChangesAsync();
-                // Aquí deberías iniciar sesión al usuario o redirigirlo a la página de inicio de sesión
                 return RedirectToAction("Login", "Home");
             }
             return View(model);
@@ -209,13 +235,12 @@ namespace GSI.Controllers
             return View(model);
         }
 
-        [HttpPost]
+       
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync("CookieAuthentication");
             return RedirectToAction("Login", "Home");
         }
-
 
         public IActionResult Privacy()
         {

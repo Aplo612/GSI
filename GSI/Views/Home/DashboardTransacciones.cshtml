@@ -11,6 +11,10 @@
 
 <canvas id="transaccionesChart" width="400" height="200"></canvas>
 
+<div class="text-center">
+    <h2 class="display-6">Últimas Transacciones</h2>
+</div>
+
 <table class="table">
     <thead>
         <tr>
@@ -33,6 +37,12 @@
     </tbody>
 </table>
 
+<div class="text-center">
+    <h2 class="display-6">Resumen Ganancias/Perdidas</h2>
+</div>
+
+<canvas id="gananciasChart" width="400" height="200"></canvas>
+
 @section Scripts {
     <script>
         var ctx = document.getElementById('transaccionesChart').getContext('2d');
@@ -45,6 +55,29 @@
                     data: @Html.Raw(Json.Serialize(ViewBag.NumeroDeTransacciones)), // Las cantidades
                     backgroundColor: 'rgba(0, 123, 255, 0.5)',
                     borderColor: 'rgba(0, 123, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+    <script>
+        var ctxGanancias = document.getElementById('gananciasChart').getContext('2d');
+        var gananciasChart = new Chart(ctxGanancias, {
+            type: 'bar', // Tipo de gráfico
+            data: {
+                labels: @Html.Raw(Json.Serialize(ViewBag.Meses)), // Meses
+                datasets: [{
+                    label: 'Ganancias por Mes',
+                    data: @Html.Raw(Json.Serialize(ViewBag.GananciasPorMes)), // Datos de ganancias
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
                 }]
             },

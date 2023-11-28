@@ -1,5 +1,6 @@
 ﻿using GSI.Models;
 using GSI.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -7,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GSI.Controllers
 {
+    [Authorize]
     public class ProductoController : Controller
     {
         private readonly InventarioproyectogsiContext _context;
@@ -113,6 +115,10 @@ namespace GSI.Controllers
             return Json(new { success = true, message = "Producto eliminado correctamente." });
         }
 
-        
+        public ActionResult Details(int Id)
+        {
+
+            return View("Details");
+        }
     }
 }
