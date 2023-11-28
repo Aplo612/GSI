@@ -19,7 +19,6 @@ public partial class Producto
     [Range(0.01, double.MaxValue, ErrorMessage = "El precio debe ser mayor a cero.")]
     public decimal Precio { get; set; }
 
-    [Required(ErrorMessage = "La categoría del producto es obligatoria.")]
     public int? CategoriaId { get; set; }
 
     public virtual Categoria? Categoria { get; set; }
